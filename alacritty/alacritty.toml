@@ -45,7 +45,7 @@ foreground = "#bdbdbd"
 TERM = "xterm-256color"
 
 [font]
-size = 12.0
+size = 5.5
 
 [font.bold]
 family = "SourceCodePro"

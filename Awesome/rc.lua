@@ -699,7 +699,7 @@ awful.rules.rules = {
 	{
 		rule = {},
 		properties = {
-			border_width = beautiful.border_width,
+			border_width = beautiful.border_widthi,
 			border_color = beautiful.border_normal,
 			focus = awful.client.focus.filter,
 			raise = true,
@@ -806,8 +806,8 @@ client.connect_signal("focus", function(c)
 	if c.maximized then -- no borders if only 1 client visible
 		c.border_width = 0
 	elseif #awful.screen.focused().clients > 1 then
-		c.border_width = beautiful.border_width
-		c.border_color = beautiful.border_focus
+		c.border_width = 0
+		c.border_color = beautiful.border_normal
 	end
 end)
 client.connect_signal("unfocus", function(c)
