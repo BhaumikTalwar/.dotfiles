@@ -1,0 +1,13 @@
+theme = Dark Pastel
+font-size = 13
+
+keybind = super+space=new_tab
+keybind = super+c=close_surface
+
+keybind = super+j=next_tab
+keybind = super+k=previous_tab
+
+keybind = ctrl+u=scroll_page_up
+keybind = ctrl+d=scroll_page_down
+
+keybind = shift+super+c=quit
