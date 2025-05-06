@@ -413,3 +413,8 @@ starship init fish | source
 
 # To add support for TTYs this line can be optionally added.
 # source ~/.cache/wal/colors-tty.sh
+
+# Catppuccin theme settings
+set -x GTK_THEME "Catppuccin-Mocha-Standard-Mauve-Dark"
+set -x XCURSOR_THEME "Catppuccin-Mocha-Dark-Cursors"
+set -x XCURSOR_SIZE 24
