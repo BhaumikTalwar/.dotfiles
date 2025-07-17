@@ -1,3 +1,5 @@
+vim.g.zig_fmt_parse_errors = 0
+
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 vim.opt.guicursor = ""
@@ -126,6 +128,31 @@ vim.keymap.set("n", "<leader>s", [[:%s/\<<C-r><C-w>\>/<C-r><C-w>/gI<Left><Left><
 vim.keymap.set("n", "<leader>x", "<cmd>!chmod +x %<CR>", { silent = true })
 
 vim.keymap.set("n", "<leader>vpp", "<cmd>e ~/.config/nvim/init.lua<CR>")
+
+-- Transparent background setup
+local function set_transparent_background()
+	vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
+	vim.api.nvim_set_hl(0, "NormalNC", { bg = "none" })
+	vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
+	vim.api.nvim_set_hl(0, "FloatBorder", { bg = "none" })
+	vim.api.nvim_set_hl(0, "VertSplit", { bg = "none" })
+end
+
+-- Toggle function
+local transparent_enabled = false
+
+function ToggleTransparency()
+	if transparent_enabled then
+		vim.cmd("colorscheme moonfly") -- Resets colors
+		transparent_enabled = false
+	else
+		set_transparent_background()
+		transparent_enabled = true
+	end
+end
+
+-- Keybinding
+vim.keymap.set("n", "<leader>tt", ToggleTransparency, { noremap = true, silent = true })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -441,6 +468,17 @@ require("lazy").setup({
 				end,
 			})
 
+			--  vim.api.nvim_create_autocmd("BufWritePre", {
+			--  	pattern = { "*.zig", "*.zon" },
+			--  	callback = function(ev)
+			--  		vim.lsp.buf.code_action({
+			--  			context = { only = { "source.organizeImports" }, diagnostics = {} },
+			--  			apply = true,
+			--  		})
+			--  	end,
+			--  })
+			--
+			--
 			-- LSP servers and clients are able to communicate to each other what features they support.
 			--  By default, Neovim doesn't support everything that is in the LSP specification.
 			--  When you add nvim-cmp, luasnip, etc. Neovim now has *more* capabilities.
@@ -460,17 +498,22 @@ require("lazy").setup({
 			local servers = {
 				clangd = {},
 				gopls = {},
-				zls = {},
-				pyright = {},
-				rust_analyzer = {},
+				zls = {
+					enable_build_on_save = false,
+				},
+				-- pyright = {},
+				-- rust_analyzer = {},
 				templ = {},
 				html = {
+					capabilities = capabilities,
 					filetypes = { "html", "templ" },
 				},
 				htmx = {
+					capabilities = capabilities,
 					filetypes = { "html", "templ" },
 				},
 				tailwindcss = {
+					capabilities = capabilities,
 					filetypes = { "templ", "astro", "javascript", "typescript", "react" },
 					settings = {
 						tailwindCSS = {
@@ -532,6 +575,8 @@ require("lazy").setup({
 						require("lspconfig")[server_name].setup(server)
 					end,
 				},
+				automatic_installation = true,
+				ensure_installed = { "gopls", "lua_ls", "clangd", "zls" },
 			})
 		end,
 	},
