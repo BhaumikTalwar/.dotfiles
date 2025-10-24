@@ -154,6 +154,63 @@ end
 -- Keybinding
 vim.keymap.set("n", "<leader>tt", ToggleTransparency, { noremap = true, silent = true })
 
+vim.keymap.set("n", "<leader>st", function()
+	vim.cmd.vnew()
+	vim.cmd("terminal")
+	vim.cmd("wincmd J")
+	vim.api.nvim_win_set_height(0, 7)
+end, { desc = "Open terminal split below" })
+
+local state = {
+	floating = {
+		buf = -1,
+		win = -1,
+	},
+}
+local function CreateFloatingTerm(opts)
+	opts = opts or {}
+	local width = opts.width or math.floor(vim.o.columns * 0.8)
+	local height = opts.height or math.floor(vim.o.lines * 0.8)
+
+	local col = math.floor((vim.o.columns - width) / 2)
+	local row = math.floor((vim.o.lines - height) / 2)
+
+	local buf = nil
+	if vim.api.nvim_buf_is_valid(opts.buf) then
+		buf = opts.buf
+	else
+		buf = vim.api.nvim_create_buf(false, true)
+	end
+
+	local win_config = {
+		relative = "editor",
+		width = width,
+		height = height,
+		row = row,
+		col = col,
+		style = "minimal",
+		border = "rounded",
+	}
+
+	local win = vim.api.nvim_open_win(buf, true, win_config)
+
+	return { buf = buf, win = win }
+end
+
+local toggle_floating_term = function()
+	if not vim.api.nvim_win_is_valid(state.floating.win) then
+		state.floating = CreateFloatingTerm({ buf = state.floating.buf })
+		if vim.bo[state.floating.buf].buftype ~= "terminal" then
+			vim.cmd.terminal()
+		end
+	else
+		vim.api.nvim_win_hide(state.floating.win)
+	end
+end
+
+vim.api.nvim_create_user_command("Floaterminal", toggle_floating_term, {})
+vim.keymap.set({ "n", "t" }, "<leader>ft", toggle_floating_term, { desc = "Open Floating Term" })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -167,6 +224,38 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 		vim.highlight.on_yank()
 	end,
 })
+
+-- Use treesitter for folding
+vim.opt.foldmethod = "expr"
+vim.opt.foldexpr = "nvim_treesitter#foldexpr()"
+vim.opt.foldlevel = 99 -- Start with all folds open
+vim.o.foldenable = true
+
+vim.keymap.set("n", "<leader>dj", function()
+	require("neogen").generate()
+end, { desc = "Generate JSDoc" })
+vim.keymap.set("n", "<leader>df", function()
+	require("neogen").generate({ type = "file" })
+end, { desc = "JSDoc File Header" })
+vim.keymap.set("n", "<leader>dt", function()
+	require("neogen").generate({ type = "type" })
+end, { desc = "JSDoc Type" })
+vim.keymap.set("v", "<leader>dj", function()
+	require("neogen").generate({ nodes = { vim.fn.expand("<cword>") } }) -- Or select range
+end, { desc = "JSDoc Selection" })
+
+-- JSDoc-specific: Quick-add template (bonus for DX)
+vim.keymap.set("n", "<leader>jd", function()
+	local line = vim.fn.line(".")
+	vim.api.nvim_buf_set_lines(0, line, line, false, { "/**", " * ", " */" })
+	vim.fn.cursor(line + 2, 0) -- Jump to description
+end, { desc = "Insert JSDoc Block" })
+
+-- Godot
+--  local projectfile = vim.fn.getcwd() .. "/project.godot"
+--  if projectfile then
+--  	vim.fn.serverstart("./godothost")
+--  end
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -352,6 +441,51 @@ require("lazy").setup({
 		end,
 	},
 
+	-- {
+	-- 	"mfussenegger/nvim-lint",
+	-- 	event = { "BufReadPre", "BufNewFile" }, -- Lazy-load efficiently
+	-- 	config = function()
+	-- 		local lint = require("lint")
+	--
+	-- 		-- Customize eslint_d for JS + JSDoc (quiet to reduce warning spam)
+	-- 		lint.linters.eslint_d = lint.linters.eslint_d or {}
+	-- 		local eslint_d = lint.linters.eslint_d
+	-- 		eslint_d.args = {
+	-- 			"--stdin",
+	-- 			"--stdin-filename",
+	-- 			"$FILENAME",
+	-- 			"--format",
+	-- 			"json",
+	-- 		}
+	-- 		eslint_d.ignore_exitcode = true -- Treat warnings (e.g., missing @description) as non-fatal
+	-- 		eslint_d.stdin = true -- Lint unsaved changes
+	-- 		eslint_d.cmd = "eslint_d"
+	--
+	-- 		-- JS-only associations (your focus)
+	-- 		lint.linters_by_ft = {
+	-- 			javascript = { "eslint_d" },
+	-- 			typescript = { "eslint_d" },
+	-- 			javascriptreact = { "eslint_d" },
+	-- 			typescriptreact = { "eslint_d" },
+	-- 		}
+	--
+	-- 		-- Autocmds: Trigger on save/enter/leave-insert for responsive type feedback
+	-- 		local lint_augroup = vim.api.nvim_create_augroup("lint", { clear = true })
+	-- 		vim.api.nvim_create_autocmd({ "BufEnter", "BufWritePost", "InsertLeave" }, {
+	-- 			group = lint_augroup,
+	-- 			callback = function()
+	-- 				local ft = vim.bo.filetype
+	-- 				if ft == "javascript" then -- Conditional for JS focus
+	-- 					lint.try_lint()
+	-- 				end
+	-- 			end,
+	-- 		})
+	--
+	-- 		-- Optional: Debounce for large files (prevents lag on JSDoc-heavy code)
+	-- 		vim.g.lint_debounce = 150 -- ms delay
+	-- 	end,
+	-- },
+
 	{ -- LSP Configuration & Plugins
 		"neovim/nvim-lspconfig",
 		dependencies = {
@@ -486,6 +620,9 @@ require("lazy").setup({
 			local capabilities = vim.lsp.protocol.make_client_capabilities()
 			capabilities = vim.tbl_deep_extend("force", capabilities, require("cmp_nvim_lsp").default_capabilities())
 
+			-- Godot
+			require("lspconfig").gdscript.setup(capabilities)
+
 			-- Enable the following language servers
 			--  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
 			--
@@ -496,8 +633,21 @@ require("lazy").setup({
 			--  - settings (table): Override the default settings passed when initializing the server.
 			--        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
 			local servers = {
-				clangd = {},
-				gopls = {},
+				clangd = {
+					cmd = { "clangd", "--background-index", "--compile-commands-dir=build" },
+					filetypes = { "c", "cpp", "objc", "objcpp" },
+				},
+				gopls = {
+					gofumpt = true,
+					analyses = {
+						unusedparams = true,
+						nilness = true,
+						shadow = true,
+						unusedwrite = true,
+						fieldalignment = true,
+					},
+					staticcheck = true,
+				},
 				zls = {
 					enable_build_on_save = false,
 				},
@@ -581,6 +731,29 @@ require("lazy").setup({
 		end,
 	},
 
+	{
+		"nvimtools/none-ls.nvim",
+		event = { "BufReadPre", "BufNewFile" },
+		dependencies = {
+			"nvim-lua/plenary.nvim",
+		},
+		config = function()
+			local null_ls = require("null-ls")
+			null_ls.setup({
+				sources = {
+					null_ls.builtins.diagnostics.golangci_lint.with({
+						command = "golangci-lint",
+						args = { "run", "--out-format", "json" },
+						to_stdin = false,
+						from_stderr = true, -- capture JSON from stderr instead of stdout
+						format = "json",
+					}),
+					null_ls.builtins.formatting.gofumpt,
+				},
+			})
+		end,
+	},
+
 	{ -- Autoformat
 		"stevearc/conform.nvim",
 		lazy = false,
@@ -638,13 +811,36 @@ require("lazy").setup({
 					-- `friendly-snippets` contains a variety of premade snippets.
 					--    See the README about individual language/framework/plugin snippets:
 					--    https://github.com/rafamadriz/friendly-snippets
-					-- {
-					--   'rafamadriz/friendly-snippets',
-					--   config = function()
-					--     require('luasnip.loaders.from_vscode').lazy_load()
-					--   end,
-					-- },
+					{
+						"rafamadriz/friendly-snippets",
+						config = function()
+							require("luasnip.loaders.from_vscode").lazy_load()
+						end,
+					},
 				},
+				config = function()
+					local ls = require("luasnip")
+					ls.config.setup({
+						history = true, -- Keep snippets in undo history
+						delete_check_events = "TextChanged", -- Auto-cleanup
+					})
+
+					-- Load VSCode-style snippets (if using friendly-snippets)
+					require("luasnip.loaders.from_vscode").lazy_load()
+
+					-- Navigation keymaps (essential for placeholders)
+					vim.keymap.set({ "i", "s" }, "<C-k>", function()
+						ls.jump(1)
+					end, { silent = true })
+					vim.keymap.set({ "i", "s" }, "<C-j>", function()
+						ls.jump(-1)
+					end, { silent = true })
+					vim.keymap.set("i", "<C-l>", function()
+						if ls.choice_active() then
+							ls.change_choice(1)
+						end
+					end, { silent = true })
+				end,
 			},
 			"saadparwaiz1/cmp_luasnip",
 
@@ -868,7 +1064,8 @@ require("lazy").setup({
 				--  the list of additional_vim_regex_highlighting and disabled languages for indent.
 				additional_vim_regex_highlighting = { "ruby" },
 			},
-			indent = { enable = true, disable = { "ruby" } },
+			indent = { enable = true, disable = { "ruby", "gdscript" } },
+			fold = { enable = true },
 		},
 		config = function(_, opts)
 			-- [[ Configure Treesitter ]] See `:help nvim-treesitter`
@@ -884,8 +1081,12 @@ require("lazy").setup({
 			--    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
 			--    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
 			--    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
+			--
+			--
 		end,
 	},
+
+	{ "habamax/vim-godot", event = "VimEnter" },
 
 	{ "nvim-treesitter/playground" },
 
@@ -893,14 +1094,72 @@ require("lazy").setup({
 
 	{
 		"folke/trouble.nvim",
-		config = function()
-			require("trouble").setup({
-				icons = true,
-			})
-		end,
+		opts = {}, -- for default options, refer to the configuration section for custom setup.
+		cmd = "Trouble",
+		keys = {
+			{
+				"<leader>xx",
+				"<cmd>Trouble diagnostics toggle<cr>",
+				desc = "Diagnostics (Trouble)",
+			},
+			{
+				"<leader>xX",
+				"<cmd>Trouble diagnostics toggle filter.buf=0<cr>",
+				desc = "Buffer Diagnostics (Trouble)",
+			},
+			{
+				"<leader>cs",
+				"<cmd>Trouble symbols toggle focus=false<cr>",
+				desc = "Symbols (Trouble)",
+			},
+			{
+				"<leader>cl",
+				"<cmd>Trouble lsp toggle focus=false win.position=right<cr>",
+				desc = "LSP Definitions / references / ... (Trouble)",
+			},
+			{
+				"<leader>xL",
+				"<cmd>Trouble loclist toggle<cr>",
+				desc = "Location List (Trouble)",
+			},
+			{
+				"<leader>xQ",
+				"<cmd>Trouble qflist toggle<cr>",
+				desc = "Quickfix List (Trouble)",
+			},
+		},
 	},
 	{ "folke/lsp-colors.nvim" },
 	{ "ThePrimeagen/vim-be-good" },
+
+	{
+		"danymat/neogen",
+		event = "BufReadPre", -- Or tie to JS: { "BufReadPre *.js" } if advanced
+		dependencies = { "nvim-treesitter/nvim-treesitter", "L3MON4D3/LuaSnip" }, -- Treesitter + your snipper
+		config = function()
+			local neogen = require("neogen")
+
+			neogen.setup({
+				enabled = true,
+				input_after_comment = true, -- Auto-jump to edit the generated block
+				snippet_engine = "luasnip", -- Integrates with your LuaSnip for Tab-jumping placeholders
+
+				-- JS-specific tweaks: Use JSDoc convention (default), customize templates if needed
+				languages = {
+					javascript = {
+						template = {
+							annotation_convention = "jsdoc", -- Matches your ESLint setup
+						},
+						-- Optional: Override template for more fields (e.g., add @example if your ESLint wants it)
+						-- See Neogen's configs/js.lua for full options; copy-paste to customize
+					},
+					javascriptreact = { -- If you ever need it
+						template = { annotation_convention = "jsdoc" },
+					},
+				},
+			})
+		end,
+	},
 
 	-- The following two comments only work if you have downloaded the kickstart repo, not just copy pasted the
 	-- init.lua. If you want these files, they are in the repository, so you can just download them and
