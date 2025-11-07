@@ -441,6 +441,65 @@ require("lazy").setup({
 		end,
 	},
 
+	{
+		"pmizio/typescript-tools.nvim",
+		dependencies = { "nvim-lua/plenary.nvim" },
+		opts = {
+
+			handlers = {
+				["textDocument/hover"] = vim.lsp.with(vim.lsp.handlers.hover, { border = "rounded" }),
+				["textDocument/signatureHelp"] = vim.lsp.with(vim.lsp.handlers.signature_help, { border = "rounded" }),
+			},
+
+			settings = {
+				separate_diagnostic_server = true,
+				publish_diagnostic_on = "insert_leave",
+				expose_as_code_action = {
+					"fix_all",
+					"add_missing_imports",
+					"remove_unused",
+					"remove_unused_imports",
+					"organize_imports",
+				},
+				tsserver_max_memory = "auto",
+				complete_function_calls = true,
+				include_completions_with_insert_text = true,
+
+				tsserver_format_options = {
+					insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces = true,
+					insertSpaceAfterCommaDelimiter = true,
+				},
+
+				tsserver_file_preferences = {
+					quotePreference = "auto",
+					importModuleSpecifierPreference = "non-relative",
+					includeInlayParameterNameHints = "all",
+					includeInlayFunctionLikeReturnTypeHints = true,
+					includeInlayVariableTypeHints = true,
+					includeInlayPropertyDeclarationTypeHints = true,
+					includeInlayEnumMemberValueHints = true,
+					includeCompletionsForModuleExports = true,
+					includeAutomaticOptionalChainCompletions = true,
+					includeCompletionsWithInsertText = true,
+					providePrefixAndSuffixTextForRename = true,
+					allowRenameOfImportPath = true,
+					jsxAttributeCompletionStyle = "auto",
+					includeCompletionsWithClassMemberSnippets = true,
+					includeCompletionsWithObjectLiteralMethodSnippets = true,
+					checkJs = true,
+				},
+
+				jsx_close_tag = {
+					enable = false, -- set true if you don’t use nvim-ts-autotag
+					filetypes = { "javascriptreact", "typescriptreact" },
+				},
+
+				code_lens = "off",
+				disable_member_code_lens = true,
+			},
+		},
+	},
+
 	-- {
 	-- 	"mfussenegger/nvim-lint",
 	-- 	event = { "BufReadPre", "BufNewFile" }, -- Lazy-load efficiently
@@ -679,7 +738,35 @@ require("lazy").setup({
 				--    https://github.com/pmizio/typescript-tools.nvim
 				--
 				-- But for many setups, the LSP (`tsserver`) will work just fine
-				-- tsserver = {},
+				-- ts_ls = {
+				-- 	capabilities = capabilities,
+				-- 	filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+				-- 	root_dir = require("lspconfig.util").root_pattern(
+				-- 		"jsconfig.json",
+				-- 		"tsconfig.json",
+				-- 		"package.json",
+				-- 		".git"
+				-- 	),
+				-- 	settings = {
+				-- 		javascript = {
+				-- 			inlayHints = {
+				-- 				includeInlayParameterNameHints = "all",
+				-- 				includeInlayVariableTypeHints = true,
+				-- 				includeInlayFunctionLikeReturnTypeHints = true,
+				-- 			},
+				-- 			format = { enable = true },
+				-- 			suggest = { completeFunctionCalls = true },
+				-- 			validate = { enable = true },
+				-- 		},
+				-- 		typescript = {
+				-- 			inlayHints = {
+				-- 				includeInlayParameterNameHints = "all",
+				-- 				includeInlayVariableTypeHints = true,
+				-- 				includeInlayFunctionLikeReturnTypeHints = true,
+				-- 			},
+				-- 		},
+				-- 	},
+				-- },
 				--
 
 				lua_ls = {
