@@ -10,10 +10,6 @@ gaps outer  5
 smart_borders on
 smart_gaps on
 
-# assign 		[app_id="librewolf"] 		    1
-# assign 		[app_id="org.pwmt.zathura"] 4
-# assign 		[class="Spotify"] 		    3
-
 set $mod Mod4
 set $left  h
 set $down  j
@@ -24,7 +20,9 @@ set $menu wofi --show drun -I -a
 set $browser brave
 set $file-manager ghostty fm
 
-output HDMI-A-2 resolution 1280x720
+# output HDMI-A-2 resolution 1280x720
+output HDMI-A-2 scale_filter linear
+output HDMI-A-2 resolution 1366x768
 
 bindsym $mod+x exec keepassxc
 bindsym $mod+d exec $menu
@@ -36,6 +34,7 @@ bindsym $mod+Shift+e exec bemoji
 
 bindsym $mod+bracketleft  exec --no-startup-id   grimshot --notify  save area ~/Pictures/$(date "+%Y-%m-%d_no_watermark").png
 bindsym $mod+bracketright exec --no-startup-id   grimshot --notify  copy area 
+bindsym $mod+z exec --no-startup-id              woomer
 bindsym $mod+a exec --no-startup-id             ~/.config/sway/grimshot_watermark.sh
 bindsym $mod+Shift+x exec --no-startup-id        swaylock --screenshots --clock --indicator  --indicator-radius 100 --indicator-thickness 7 --effect-blur 7x5 --effect-vignette 0.5:0.5 --ring-color bb00cc --key-hl-color 880033 --line-color 00000000 --inside-color 00000088 --separator-color 00000000 --grace 2 --fade-in 0
 

@@ -1,3 +1,4 @@
+vim.opt.exrc = true
 vim.g.zig_fmt_parse_errors = 0
 
 vim.g.mapleader = " "
@@ -440,6 +441,319 @@ require("lazy").setup({
 			end, { desc = "[S]earch [N]eovim files" })
 		end,
 	},
+	{
+		"brianhuster/live-preview.nvim",
+		dependencies = {
+			"nvim-telescope/telescope.nvim",
+		},
+	},
+
+	{
+		"tpope/vim-fugitive",
+		config = function()
+			vim.keymap.set("n", "<leader>gs", ":Gstatus<CR>", { noremap = true, silent = true })
+		end,
+		cmd = "Git",
+	},
+	{
+		"cephei8/odin.nvim",
+		lazy = false,
+		opts = {},
+		config = function()
+			vim.keymap.set("n", "<leader>ob", "<cmd>Odin build<cr>", { desc = "Odin build" })
+			vim.keymap.set("n", "<leader>ot", "<cmd>Odin test<cr>", { desc = "Odin test" })
+		end,
+	},
+	{
+		"mfussenegger/nvim-dap",
+		dependencies = {
+			"https://github.com/rcarriga/nvim-dap-ui",
+			"https://github.com/nvim-neotest/nvim-nio",
+			"https://github.com/mason-org/mason.nvim",
+			"https://github.com/jay-babu/mason-nvim-dap.nvim",
+			"https://github.com/leoluz/nvim-dap-go",
+		},
+
+		config = function()
+			vim.keymap.set("n", "<F5>", function()
+				require("dap").continue()
+			end, { desc = "Debug: Start/Continue" })
+			vim.keymap.set("n", "<F1>", function()
+				require("dap").step_into()
+			end, { desc = "Debug: Step Into" })
+			vim.keymap.set("n", "<F2>", function()
+				require("dap").step_over()
+			end, { desc = "Debug: Step Over" })
+			vim.keymap.set("n", "<F3>", function()
+				require("dap").step_out()
+			end, { desc = "Debug: Step Out" })
+			vim.keymap.set("n", "<leader>b", function()
+				require("dap").toggle_breakpoint()
+			end, { desc = "Debug: Toggle Breakpoint" })
+			vim.keymap.set("n", "<leader>gb", function()
+				require("dap").run_to_cursor()
+			end, { desc = "Run to the cursor pos" })
+			vim.keymap.set("n", "<leader>B", function()
+				require("dap").set_breakpoint(vim.fn.input("Breakpoint condition: "))
+			end, { desc = "Debug: Set Breakpoint" })
+			vim.keymap.set("n", "<leader>dap", function()
+				require("dapui").toggle()
+			end, { desc = "Debug: See last session result." })
+
+			local dap = require("dap")
+			local dapui = require("dapui")
+			require("mason-nvim-dap").setup({
+				automatic_installation = true,
+				handlers = {},
+				ensure_installed = {
+					"delve",
+				},
+			})
+
+			---@diagnostic disable-next-line: missing-fields
+			dapui.setup({
+				icons = { expanded = "▾", collapsed = "▸", current_frame = "*" },
+				---@diagnostic disable-next-line: missing-fields
+				controls = {
+					icons = {
+						pause = "⏸",
+						play = "▶",
+						step_into = "⏎",
+						step_over = "⏭",
+						step_out = "⏮",
+						step_back = "b",
+						run_last = "▶▶",
+						terminate = "⏹",
+						disconnect = "⏏",
+					},
+				},
+			})
+
+			vim.keymap.set({ "n", "v" }, "<leader>?", dapui.eval, { desc = "DAP UI eval" })
+
+			vim.api.nvim_set_hl(0, "DapBreak", { fg = "#e51400" })
+			vim.api.nvim_set_hl(0, "DapStop", { fg = "#ffcc00" })
+			local breakpoint_icons = vim.g.have_nerd_font
+					and {
+						Breakpoint = "",
+						BreakpointCondition = "",
+						BreakpointRejected = "",
+						LogPoint = "",
+						Stopped = "",
+					}
+				or {
+					Breakpoint = "●",
+					BreakpointCondition = "⊜",
+					BreakpointRejected = "⊘",
+					LogPoint = "◆",
+					Stopped = "⭔",
+				}
+			for type, icon in pairs(breakpoint_icons) do
+				local tp = "Dap" .. type
+				local hl = (type == "Stopped") and "DapStop" or "DapBreak"
+				vim.fn.sign_define(tp, { text = icon, texthl = hl, numhl = hl })
+			end
+
+			dap.listeners.after.event_initialized["dapui_config"] = dapui.open
+			dap.listeners.before.event_terminated["dapui_config"] = dapui.close
+			dap.listeners.before.event_exited["dapui_config"] = dapui.close
+
+			require("dap-go").setup({
+				delve = {
+					detached = vim.fn.has("win32") == 0,
+				},
+			})
+		end,
+	},
+	{
+		"stevearc/oil.nvim",
+		dependencies = { { "nvim-mini/mini.icons", opts = {} } },
+		config = function()
+			require("oil").setup({
+				default_file_explorer = false,
+				skip_confirm_for_simple_edits = true,
+				columns = {
+					"icon",
+					"permissions",
+					"size",
+					"mtime",
+				},
+				win_options = {
+					wrap = true,
+					signcolumn = "no",
+					cursorcolumn = false,
+					foldcolumn = "0",
+					spell = false,
+					list = false,
+					conceallevel = 3,
+					concealcursor = "nvic",
+				},
+				float = {
+					-- Padding around the floating window
+					padding = 2,
+					-- max_width and max_height can be integers or a float between 0 and 1 (e.g. 0.4 for 40%)
+					max_width = 0,
+					max_height = 0,
+					border = "rounded",
+					win_options = {
+						winblend = 0,
+					},
+					-- optionally override the oil buffers window title with custom function: fun(winid: integer): string
+					get_win_title = nil,
+					-- preview_split: Split direction: "auto", "left", "right", "above", "below".
+					preview_split = "auto",
+					-- This is the config that will be passed to nvim_open_win.
+					-- Change values here to customize the layout
+					override = function(conf)
+						return conf
+					end,
+				},
+				confirmation = {
+					-- Width dimensions can be integers or a float between 0 and 1 (e.g. 0.4 for 40%)
+					-- min_width and max_width can be a single value or a list of mixed integer/float types.
+					-- max_width = {100, 0.8} means "the lesser of 100 columns or 80% of total"
+					max_width = 0.6,
+					-- min_width = {40, 0.4} means "the greater of 40 columns or 40% of total"
+					min_width = { 40, 0.4 },
+					-- optionally define an integer/float for the exact width of the preview window
+					width = nil,
+					-- Height dimensions can be integers or a float between 0 and 1 (e.g. 0.4 for 40%)
+					-- min_height and max_height can be a single value or a list of mixed integer/float types.
+					-- max_height = {80, 0.9} means "the lesser of 80 columns or 90% of total"
+					max_height = 0.6,
+					-- min_height = {5, 0.1} means "the greater of 5 columns or 10% of total"
+					min_height = { 5, 0.1 },
+					-- optionally define an integer/float for the exact height of the preview window
+					height = nil,
+					border = nil,
+					win_options = {
+						winblend = 0,
+					},
+				},
+			})
+
+			vim.keymap.set("n", "-", "<CMD>Oil<CR>", { desc = "Open parent directory" })
+			vim.keymap.set("n", "<leader>-", require("oil").toggle_float, { desc = "Open parent directory" })
+		end,
+		lazy = false,
+	},
+	{
+		"lewis6991/gitsigns.nvim",
+		opts = {
+			signs = {
+				add = { text = "┃" },
+				change = { text = "┃" },
+				delete = { text = "_" },
+				topdelete = { text = "‾" },
+				changedelete = { text = "~" },
+				untracked = { text = "┆" },
+			},
+			signs_staged = {
+				add = { text = "┃" },
+				change = { text = "┃" },
+				delete = { text = "_" },
+				topdelete = { text = "‾" },
+				changedelete = { text = "~" },
+				untracked = { text = "┆" },
+			},
+			signs_staged_enable = true,
+			signcolumn = true, -- Toggle with `:Gitsigns toggle_signs`
+			numhl = false, -- Toggle with `:Gitsigns toggle_numhl`
+			linehl = false, -- Toggle with `:Gitsigns toggle_linehl`
+			word_diff = false, -- Toggle with `:Gitsigns toggle_word_diff`
+			watch_gitdir = {
+				follow_files = true,
+			},
+			auto_attach = true,
+			attach_to_untracked = false,
+			current_line_blame = false, -- Toggle with `:Gitsigns toggle_current_line_blame`
+			current_line_blame_opts = {
+				virt_text = true,
+				virt_text_pos = "eol", -- 'eol' | 'overlay' | 'right_align'
+				delay = 1000,
+				ignore_whitespace = false,
+				virt_text_priority = 100,
+				use_focus = true,
+			},
+			current_line_blame_formatter = "<author>, <author_time:%R> - <summary>",
+			sign_priority = 6,
+			update_debounce = 100,
+			status_formatter = nil, -- Use default
+			max_file_length = 40000, -- Disable if file is longer than this (in lines)
+			preview_config = {
+				-- Options passed to nvim_open_win
+				style = "minimal",
+				relative = "cursor",
+				row = 0,
+				col = 1,
+			},
+			on_attach = function(bufnr)
+				local gitsigns = require("gitsigns")
+
+				local function map(mode, l, r, opts)
+					opts = opts or {}
+					opts.buffer = bufnr
+					vim.keymap.set(mode, l, r, opts)
+				end
+
+				-- Navigation
+				map("n", "]c", function()
+					if vim.wo.diff then
+						vim.cmd.normal({ "]c", bang = true })
+					else
+						gitsigns.nav_hunk("next")
+					end
+				end)
+
+				map("n", "[c", function()
+					if vim.wo.diff then
+						vim.cmd.normal({ "[c", bang = true })
+					else
+						gitsigns.nav_hunk("prev")
+					end
+				end)
+
+				-- Actions
+				map("n", "<leader>hs", gitsigns.stage_hunk)
+				map("n", "<leader>hr", gitsigns.reset_hunk)
+
+				map("v", "<leader>hs", function()
+					gitsigns.stage_hunk({ vim.fn.line("."), vim.fn.line("v") })
+				end)
+
+				map("v", "<leader>hr", function()
+					gitsigns.reset_hunk({ vim.fn.line("."), vim.fn.line("v") })
+				end)
+
+				map("n", "<leader>hS", gitsigns.stage_buffer)
+				map("n", "<leader>hR", gitsigns.reset_buffer)
+				map("n", "<leader>hp", gitsigns.preview_hunk)
+				map("n", "<leader>hi", gitsigns.preview_hunk_inline)
+
+				map("n", "<leader>hb", function()
+					gitsigns.blame_line({ full = true })
+				end)
+
+				map("n", "<leader>hd", gitsigns.diffthis)
+
+				map("n", "<leader>hD", function()
+					gitsigns.diffthis("~")
+				end)
+
+				map("n", "<leader>hQ", function()
+					gitsigns.setqflist("all")
+				end)
+				map("n", "<leader>hq", gitsigns.setqflist)
+
+				-- Toggles
+				map("n", "<leader>tb", gitsigns.toggle_current_line_blame)
+				map("n", "<leader>tw", gitsigns.toggle_word_diff)
+
+				-- Text object
+				map({ "o", "x" }, "ih", gitsigns.select_hunk)
+			end,
+		},
+	},
 
 	{
 		"pmizio/typescript-tools.nvim",
@@ -680,7 +994,7 @@ require("lazy").setup({
 			capabilities = vim.tbl_deep_extend("force", capabilities, require("cmp_nvim_lsp").default_capabilities())
 
 			-- Godot
-			require("lspconfig").gdscript.setup(capabilities)
+			-- require("lspconfig").gdscript.setup(capabilities)
 
 			-- Enable the following language servers
 			--  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
@@ -706,6 +1020,11 @@ require("lazy").setup({
 						fieldalignment = true,
 					},
 					staticcheck = true,
+				},
+				ols = {
+					init_options = {
+						checker_args = "-strict-style",
+					},
 				},
 				zls = {
 					enable_build_on_save = false,
@@ -809,7 +1128,9 @@ require("lazy").setup({
 						-- by the server configuration above. Useful when disabling
 						-- certain features of an LSP (for example, turning off formatting for tsserver)
 						server.capabilities = vim.tbl_deep_extend("force", {}, capabilities, server.capabilities or {})
-						require("lspconfig")[server_name].setup(server)
+						-- require("lspconfig")[server_name].setup(server)
+						vim.lsp.config(server_name, server)
+						vim.lsp.enable(server_name)
 					end,
 				},
 				automatic_installation = true,
@@ -1022,6 +1343,60 @@ require("lazy").setup({
 	--		vim.cmd.hi("Comment gui=none")
 	--	end,
 	--},
+	{
+		"Vonr/align.nvim",
+		branch = "v2",
+		lazy = true,
+		init = function()
+			local NS = { noremap = true, silent = true }
+
+			-- Aligns to 1 character
+			vim.keymap.set("x", "aa", function()
+				require("align").align_to_char({
+					length = 1,
+				})
+			end, NS)
+
+			-- Aligns to 2 characters with previews
+			vim.keymap.set("x", "ad", function()
+				require("align").align_to_char({
+					preview = true,
+					length = 2,
+				})
+			end, NS)
+
+			-- Aligns to a string with previews
+			vim.keymap.set("x", "aw", function()
+				require("align").align_to_string({
+					preview = true,
+					regex = false,
+				})
+			end, NS)
+
+			-- Aligns to a Vim regex with previews
+			vim.keymap.set("x", "ar", function()
+				require("align").align_to_string({
+					preview = true,
+					regex = true,
+				})
+			end, NS)
+
+			-- Example gawip to align a paragraph to a string with previews
+			vim.keymap.set("n", "gaw", function()
+				local a = require("align")
+				a.operator(a.align_to_string, {
+					regex = false,
+					preview = true,
+				})
+			end, NS)
+
+			-- Example gaaip to align a paragraph to 1 character
+			vim.keymap.set("n", "gaa", function()
+				local a = require("align")
+				a.operator(a.align_to_char)
+			end, NS)
+		end,
+	},
 
 	{
 		"bluz71/vim-moonfly-colors",
@@ -1292,3 +1667,4 @@ require("lazy").setup({
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
+--
